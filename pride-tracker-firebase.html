@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pride Community Voice Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  /* ============================================================
+     PRIDE COMMUNITY TRACKER — Editable Configuration
+     To customise:
+       • Edit the QUESTIONS array below in the <script> tag
+       • Change ROWS to set how many people can respond per section
+       • Adjust colors in QUESTIONS[n].hc (header) / .tc (label text)
+     ============================================================ */
+  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Nunito:wght@600;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f3ede8; font-family: 'Nunito', sans-serif; }
+
+  .pt-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 20px 36px;
+    background-color: #fefcf8;
+    background-image: radial-gradient(circle, #ccc8c0 1.2px, transparent 1.2px);
+    background-size: 16px 16px;
+    min-height: 100vh;
+  }
+  .pt-rb {
+    height: 9px;
+    border-radius: 5px;
+    background: linear-gradient(90deg,
+      #E40303 0 16.67%, #FF8C00 0 33.33%,
+      #FFED00 0 50%, #008026 0 66.67%,
+      #004DFF 0 83.33%, #750787 0 100%
+    );
+  }
+  .pt-hdr { text-align: center; margin: 18px 0 24px; }
+  .pt-title {
+    font-family: 'Caveat', cursive;
+    font-size: 50px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #E40303 0%, #FF8C00 20%, #C8A000 40%, #008026 60%, #004DFF 80%, #750787 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .pt-sub {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 8px;
+  }
+  .pt-how { font-size: 13px; color: #bbb; }
+  .pt-how i { font-size: 14px; vertical-align: -2px; margin-right: 4px; }
+
+  /* ── Sync status bar ── */
+  .pt-sync {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin: -10px 0 18px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #aaa;
+    transition: color 0.3s;
+  }
+  .pt-sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ddd;
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .pt-sync.connected .pt-sync-dot { background: #4caf50; animation: pulse 2s infinite; }
+  .pt-sync.connected { color: #4caf50; }
+  .pt-sync.syncing .pt-sync-dot { background: #FF8C00; }
+  .pt-sync.syncing { color: #FF8C00; }
+  .pt-sync.error .pt-sync-dot { background: #e53935; }
+  .pt-sync.error { color: #e53935; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  /* ── Firebase config modal ── */
+  .pt-modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .pt-modal {
+    background: #fefcf8;
+    border-radius: 18px;
+    padding: 32px 28px 26px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    border-top: 6px solid transparent;
+    border-image: linear-gradient(90deg, #E40303, #FF8C00, #FFED00, #008026, #004DFF, #750787) 1;
+    border-radius: 18px;
+  }
+  .pt-modal h2 {
+    font-family: 'Caveat', cursive;
+    font-size: 30px;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  .pt-modal p { font-size: 13px; color: #888; margin-bottom: 16px; line-height: 1.5; }
+  .pt-modal a { color: #004DFF; text-decoration: none; }
+  .pt-modal a:hover { text-decoration: underline; }
+  .pt-modal label {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+  .pt-modal input {
+    width: 100%;
+    border: 1.5px solid #e0d8d0;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    outline: none;
+    background: #fff;
+  }
+  .pt-modal input:focus { border-color: #004DFF; }
+  .pt-modal input::placeholder { color: #ccc; }
+  .pt-modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .pt-btn {
+    flex: 1;
+    padding: 11px 16px;
+    border-radius: 9px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .pt-btn:hover { opacity: 0.88; }
+  .pt-btn:active { transform: scale(0.97); }
+  .pt-btn-primary { background: #333; color: #fff; }
+  .pt-btn-ghost { background: #f0ece6; color: #888; }
+  .pt-modal-hint {
+    font-size: 10px;
+    color: #bbb;
+    margin-top: 14px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .pt-cfg-btn {
+    background: none;
+    border: 1.5px solid #e0d8d0;
+    border-radius: 7px;
+    padding: 4px 10px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #bbb;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .pt-cfg-btn:hover { border-color: #aaa; color: #888; }
+
+  .pt-sec {
+    margin-bottom: 14px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e8e0d8;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  .pt-sh {
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pt-sh i { font-size: 20px; color: #fff; flex-shrink: 0; }
+  .pt-sq {
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .pt-ga {
+    padding: 8px 14px 12px;
+    overflow-x: auto;
+    background: #fff;
+  }
+  .pt-tbl { border-collapse: separate; border-spacing: 3px; }
+  .pt-thn, .pt-thi {
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #bbb;
+    vertical-align: bottom;
+    padding-bottom: 4px;
+    text-align: center;
+  }
+  .pt-tho {
+    width: 44px;
+    height: 88px;
+    vertical-align: bottom;
+    position: relative;
+    overflow: visible;
+  }
+  .pt-ol {
+    display: block;
+    position: absolute;
+    bottom: 4px;
+    left: 22px;
+    transform-origin: bottom left;
+    transform: rotate(-45deg);
+    white-space: nowrap;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .pt-tn {
+    font-size: 9px;
+    font-weight: 800;
+    color: #ccc;
+    text-align: right;
+    padding-right: 3px;
+    vertical-align: middle;
+    width: 22px;
+  }
+  .pt-init-fld {
+    width: 46px;
+    height: 28px;
+    font-size: 10.5px;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1.5px solid #e0d8d0;
+    border-radius: 5px;
+    background: #fff;
+    color: #555;
+    padding: 0 4px;
+    outline: none;
+    display: block;
+  }
+  .pt-init-fld:focus { border-color: #aaa; }
+  .pt-cell-td { vertical-align: middle; }
+  .pt-cell {
+    width: 34px;
+    height: 28px;
+    border: 1.5px solid #e0d8d0;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    transition: transform 0.1s;
+    font-size: 14px;
+    color: #fff;
+    user-select: none;
+  }
+  .pt-cell:hover { transform: scale(1.08); border-color: #aaa; }
+  .pt-cell:active { transform: scale(0.95); }
+  .pt-cell.on { border-color: transparent; }
+  tr:nth-child(odd) .pt-cell:not(.on) { background: #f8f6f2; }
+
+  .pt-ft { text-align: center; margin-top: 18px; }
+  .pt-fs {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #ccc;
+    margin-top: 10px;
+  }
+
+  .pt-two-col {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .pt-col { width: 100%; max-width: 420px; }
+  @media (max-width: 980px) {
+    .pt-two-col { flex-direction: column; gap: 12px; }
+    .pt-col { max-width: none; }
+  }
+
+  @media print {
+    body { background: white; }
+    .pt-wrap { box-shadow: none; background-image: none; }
+    .pt-cell { cursor: default; }
+    .pt-init-fld { cursor: default; }
+    .pt-sync, .pt-cfg-btn, .pt-modal-bg { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- Firebase SDK (modular compat build — works in plain HTML/GitHub Pages) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+// ============================================================
+// CONFIGURATION — Edit this section to customise the tracker
+// ============================================================
+
+const ROWS = 15;
+const COLS = 2;
+
+const QUESTIONS = [
+  {
+    id: 1,
+    icon: "ti-heart",
+    q: "What's one value you associate with Pride?",
+    opts: ["Authenticity", "Courage", "Acceptance", "Equality", "Respect"],
+    hc: "#D4537E",
+    tc: "#72243E"
+  },
+  {
+    id: 2,
+    icon: "ti-sparkles",
+    q: "What does Pride mean to you?",
+    opts: ["Love", "Visibility", "Allyship", "Community", "Awareness", "Celebration"],
+    hc: "#C4511B",
+    tc: "#712B13"
+  },
+  {
+    id: 3,
+    icon: "ti-shield-check",
+    q: "What helps you feel safe to be yourself?",
+    opts: ["Being accepted", "Open-minded people", "Supportive env.", "No judgement", "Inclusive culture"],
+    hc: "#8A6500",
+    tc: "#633806"
+  },
+  {
+    id: 4,
+    icon: "ti-users",
+    q: "How do you show allyship (or want to)?",
+    opts: ["Speak up", "Support others", "Learn more", "Show up to events"],
+    hc: "#2D6010",
+    tc: "#173404"
+  },
+  {
+    id: 5,
+    icon: "ti-message-circle",
+    q: "What makes you feel heard at work?",
+    opts: ["Being heard", "Supportive team", "Open conversations", "Respectful culture", "Safe environment"],
+    hc: "#534AB7",
+    tc: "#26215C"
+  }
+];
+
+// ============================================================
+// Firebase helpers
+// ============================================================
+
+const FB_CONFIG_KEY = 'pt_firebase_config';
+
+function loadSavedConfig() {
+  try {
+    const raw = localStorage.getItem(FB_CONFIG_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function saveConfig(cfg) {
+  try { localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg)); } catch {}
+}
+
+let _db = null;
+
+function initFirebase(cfg) {
+  try {
+    // Destroy any existing app so we can re-init with new config
+    const existing = firebase.apps.find(a => a.name === 'pride-tracker');
+    if (existing) existing.delete();
+
+    const app = firebase.initializeApp(cfg, 'pride-tracker');
+    _db = firebase.database(app);
+    return _db;
+  } catch (err) {
+    console.error('Firebase init failed:', err);
+    return null;
+  }
+}
+
+function getDb() { return _db; }
+
+// ============================================================
+// App
+// ============================================================
+const { useState, useEffect, useRef, useCallback } = React;
+const e = React.createElement;
+
+// ── Firebase config modal ──────────────────────────────────
+function ConfigModal({ onConnect, onSkip }) {
+  const [apiKey,       setApiKey]       = useState('');
+  const [projectId,    setProjectId]    = useState('');
+  const [dbUrl,        setDbUrl]        = useState('');
+
+  function handleConnect() {
+    if (!apiKey.trim() || !projectId.trim() || !dbUrl.trim()) {
+      alert('Please fill in all three fields.');
+      return;
+    }
+    const cfg = {
+      apiKey: apiKey.trim(),
+      projectId: projectId.trim(),
+      databaseURL: dbUrl.trim().replace(/\/$/, ''),
+      // authDomain needed for SDK init even if not using auth
+      authDomain: `${projectId.trim()}.firebaseapp.com`,
+    };
+    onConnect(cfg);
+  }
+
+  return e('div', { className: 'pt-modal-bg' },
+    e('div', { className: 'pt-modal' },
+      e('h2', null, '🔥 Connect Firebase'),
+      e('p', null,
+        'To sync responses across devices in real time, paste your Firebase project details below.',
+        ' Need help? ',
+        e('a', { href: 'https://firebase.google.com/docs/web/setup', target: '_blank', rel: 'noopener' }, 'Firebase setup guide'),
+        '. Make sure your Realtime Database rules allow read/write.'
+      ),
+      e('label', null, 'API Key'),
+      e('input', {
+        type: 'text', placeholder: 'AIzaSy…',
+        value: apiKey, onChange: ev => setApiKey(ev.target.value)
+      }),
+      e('label', null, 'Project ID'),
+      e('input', {
+        type: 'text', placeholder: 'my-pride-tracker',
+        value: projectId, onChange: ev => setProjectId(ev.target.value)
+      }),
+      e('label', null, 'Realtime Database URL'),
+      e('input', {
+        type: 'text', placeholder: 'https://my-pride-tracker-default-rtdb.firebaseio.com',
+        value: dbUrl, onChange: ev => setDbUrl(ev.target.value)
+      }),
+      e('div', { className: 'pt-modal-btns' },
+        e('button', { className: 'pt-btn pt-btn-primary', onClick: handleConnect }, '⚡ Connect'),
+        e('button', { className: 'pt-btn pt-btn-ghost', onClick: onSkip }, 'Use offline')
+      ),
+      e('p', { className: 'pt-modal-hint' },
+        'Your Firebase config is only stored in your browser\'s local storage.',
+        ' Data is shared with everyone who connects to the same project.'
+      )
+    )
+  );
+}
+
+// ── Sync status pill ──────────────────────────────────────
+function SyncStatus({ status, onConfigure }) {
+  const labels = {
+    offline: 'Offline (local only)',
+    connecting: 'Connecting…',
+    connected: 'Live · syncing',
+    syncing: 'Saving…',
+    error: 'Sync error'
+  };
+  return e('div', { className: `pt-sync ${status === 'connected' || status === 'syncing' ? status : status === 'error' ? 'error' : ''}` },
+    e('span', { className: 'pt-sync-dot' }),
+    e('span', null, labels[status] || status),
+    e('button', {
+      className: 'pt-cfg-btn',
+      onClick: onConfigure,
+      title: 'Change Firebase config'
+    }, '⚙ Config')
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────
+function App() {
+  const [cells, setCells]       = useState({});
+  const [inits, setInits]       = useState({});
+  const [syncStatus, setSyncStatus] = useState('offline');
+  const [showConfig, setShowConfig] = useState(false);
+  const [fbConnected, setFbConnected] = useState(false);
+
+  const localRef = useRef(null);   // Firebase DB ref
+  const ignoreNext = useRef(false); // avoid echo-back loops on write
+
+  // Load saved config on mount; show modal if none
+  useEffect(() => {
+    const saved = loadSavedConfig();
+    if (saved) {
+      connectFirebase(saved);
+    } else {
+      setShowConfig(true);
+    }
+  }, []);
+
+  function connectFirebase(cfg) {
+    setSyncStatus('connecting');
+    const db = initFirebase(cfg);
+    if (!db) { setSyncStatus('error'); return; }
+
+    saveConfig(cfg);
+    const ref = db.ref('pride-tracker/v1');
+    localRef.current = ref;
+
+    // Listen for remote changes
+    ref.on('value', snap => {
+      const data = snap.val();
+      if (!data) { setSyncStatus('connected'); setFbConnected(true); return; }
+      ignoreNext.current = true;
+      if (data.cells) setCells(data.cells);
+      if (data.inits)  setInits(data.inits);
+      setSyncStatus('connected');
+      setFbConnected(true);
+    }, err => {
+      console.error('Firebase read error:', err);
+      setSyncStatus('error');
+    });
+
+    setShowConfig(false);
+  }
+
+  // Debounced write to Firebase
+  const writeTimer = useRef(null);
+  function scheduleWrite(newCells, newInits) {
+    if (!localRef.current) return;
+    if (ignoreNext.current) { ignoreNext.current = false; return; }
+    setSyncStatus('syncing');
+    clearTimeout(writeTimer.current);
+    writeTimer.current = setTimeout(() => {
+      localRef.current.set({ cells: newCells, inits: newInits })
+        .then(() => setSyncStatus('connected'))
+        .catch(err => { console.error('Firebase write error:', err); setSyncStatus('error'); });
+    }, 400);
+  }
+
+  const ck = (q, o, c, r) => `${q}_${o}_${c}_${r}`;
+  const ik = (q, c, r) => `i_${q}_${c}_${r}`;
+
+  function tog(q, o, c, r) {
+    setCells(prev => {
+      const next = { ...prev, [ck(q, o, c, r)]: !prev[ck(q, o, c, r)] };
+      scheduleWrite(next, inits);
+      return next;
+    });
+  }
+
+  function updateInit(q, c, r, val) {
+    setInits(prev => {
+      const next = { ...prev, [ik(q, c, r)]: val };
+      scheduleWrite(cells, next);
+      return next;
+    });
+  }
+
+  return e('div', { className: 'pt-wrap', id: 'root' },
+    showConfig && e(ConfigModal, {
+      onConnect: connectFirebase,
+      onSkip: () => { setSyncStatus('offline'); setShowConfig(false); }
+    }),
+
+    e('div', { className: 'pt-rb' }),
+    e('div', { className: 'pt-hdr' },
+      e('div', { className: 'pt-title' }, '🌈 Happy Pride Month 🌈'),
+      e('div', { className: 'pt-sub' }, 'Community Voice Tracker'),
+      e('div', { className: 'pt-how' },
+        e('i', { className: 'ti ti-info-circle', 'aria-hidden': 'true' }),
+        'Enter your initials · click a box to mark your answer · click again to clear'
+      )
+    ),
+
+    e(SyncStatus, {
+      status: syncStatus,
+      onConfigure: () => setShowConfig(true)
+    }),
+
+    QUESTIONS.map(q =>
+      e('div', { className: 'pt-sec', key: q.id, style: { borderColor: q.hc + '40' } },
+        e('div', { className: 'pt-sh', style: { background: q.hc } },
+          e('i', { className: `ti ${q.icon}`, 'aria-hidden': 'true' }),
+          e('span', { className: 'pt-sq' }, q.q)
+        ),
+        e('div', { className: 'pt-ga' },
+          e('div', { className: 'pt-two-col' },
+            Array.from({ length: COLS }, (_, c) =>
+              e('table', { key: c, className: 'pt-tbl pt-col' },
+                e('thead', null,
+                  e('tr', null,
+                    e('th', { className: 'pt-thn', style: { width: 22 } }, '#'),
+                    e('th', { className: 'pt-thi', style: { width: 50 } }, 'Initials'),
+                    q.opts.map((o, oi) =>
+                      e('th', { key: oi, className: 'pt-tho' },
+                        e('span', { className: 'pt-ol', style: { color: q.tc } }, o)
+                      )
+                    )
+                  )
+                ),
+                e('tbody', null,
+                  Array.from({ length: ROWS }, (_, r) =>
+                    e('tr', { key: `c${c}r${r}` },
+                      e('td', { className: 'pt-tn' }, r + 1),
+                      e('td', { style: { verticalAlign: 'middle', paddingRight: 3 } },
+                        e('input', {
+                          type: 'text',
+                          className: 'pt-init-fld',
+                          maxLength: 4,
+                          placeholder: '···',
+                          value: inits[ik(q.id, c, r)] || '',
+                          onChange: ev => updateInit(q.id, c, r, ev.target.value),
+                          style: { borderColor: q.hc + '55' },
+                          'aria-label': `Column ${c + 1} row ${r + 1} initials`
+                        })
+                      ),
+                      q.opts.map((_, oi) => {
+                        const k = ck(q.id, oi, c, r);
+                        const on = !!cells[k];
+                        return e('td', { key: oi, className: 'pt-cell-td' },
+                          e('div', {
+                            className: `pt-cell${on ? ' on' : ''}`,
+                            style: on ? { background: q.hc } : {},
+                            onClick: () => tog(q.id, oi, c, r),
+                            role: 'checkbox',
+                            'aria-checked': on,
+                            tabIndex: 0,
+                            onKeyDown: ev => { if (ev.key === 'Enter' || ev.key === ' ') tog(q.id, oi, c, r); }
+                          },
+                            on ? e('i', { className: 'ti ti-check', 'aria-hidden': 'true' }) : null
+                          )
+                        );
+                      })
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+    e('div', { className: 'pt-ft' },
+      e('div', { className: 'pt-rb' }),
+      e('div', { className: 'pt-fs' }, 'Every voice matters · every identity celebrated')
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+</script>
+</body>
+</html>
