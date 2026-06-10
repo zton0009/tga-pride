@@ -385,20 +385,34 @@ const QUESTIONS = [
 ];
 
 // ============================================================
+// Firebase config — hardcoded for automatic connection
+// ============================================================
+
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAyK6lcpU052QBF4e3FDflpmPdxEqzSqBI",
+  authDomain:        "telstra-grad-pride-event.firebaseapp.com",
+  databaseURL:       "https://telstra-grad-pride-event-default-rtdb.firebaseio.com",
+  projectId:         "telstra-grad-pride-event",
+  storageBucket:     "telstra-grad-pride-event.firebasestorage.app",
+  messagingSenderId: "880995791147",
+  appId:             "1:880995791147:web:b073bbdf3abc3bf053d56e"
+};
+
+// ============================================================
 // Firebase helpers
 // ============================================================
 
-const FB_CONFIG_KEY = 'pt_firebase_config';
-
 function loadSavedConfig() {
+  // Always use the hardcoded config; localStorage override kept for dev use
   try {
-    const raw = localStorage.getItem(FB_CONFIG_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+    const raw = localStorage.getItem('pt_firebase_config_override');
+    return raw ? JSON.parse(raw) : FIREBASE_CONFIG;
+  } catch { return FIREBASE_CONFIG; }
 }
 
 function saveConfig(cfg) {
-  try { localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg)); } catch {}
+  // Only save if it differs from the default (i.e. a manual override)
+  try { localStorage.setItem('pt_firebase_config_override', JSON.stringify(cfg)); } catch {}
 }
 
 let _db = null;
@@ -514,14 +528,9 @@ function App() {
   const localRef = useRef(null);   // Firebase DB ref
   const ignoreNext = useRef(false); // avoid echo-back loops on write
 
-  // Load saved config on mount; show modal if none
+  // Auto-connect on mount using hardcoded config
   useEffect(() => {
-    const saved = loadSavedConfig();
-    if (saved) {
-      connectFirebase(saved);
-    } else {
-      setShowConfig(true);
-    }
+    connectFirebase(loadSavedConfig());
   }, []);
 
   function connectFirebase(cfg) {
